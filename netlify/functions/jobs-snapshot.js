@@ -64,7 +64,7 @@ exports.handler = async function handler(event) {
       upstream.searchParams.set("country_code", countryCode);
       try {
         const res = await fetch(upstream.toString(), {
-          headers: { Accept: "application/json", "User-Agent": "TheHiringCafe/1.0" },
+          headers: { Accept: "application/json", "User-Agent": "EmploymentCafe/1.0" },
           cache: "no-store"
         });
         if (!res.ok) break;

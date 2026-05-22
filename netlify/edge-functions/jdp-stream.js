@@ -41,7 +41,7 @@ export default async function handler(request, _context) {
     const upstreamRes = await fetch(upstream.toString(), {
       headers: {
         Accept: "application/json",
-        "User-Agent": "TheHiringCafe/1.0 (edge-stream)",
+        "User-Agent": "EmploymentCafe/1.0 (edge-stream)",
       },
     });
 

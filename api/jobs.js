@@ -25,7 +25,7 @@ export default async function handler(req, res) {
 
   try {
     const upstreamRes = await fetch(upstream, {
-      headers: { Accept: "application/json", "User-Agent": "TheHiringCafe/1.0" },
+      headers: { Accept: "application/json", "User-Agent": "EmploymentCafe/1.0" },
       cache: "no-store"
     });
 

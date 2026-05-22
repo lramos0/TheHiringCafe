@@ -26,6 +26,11 @@
   to = "/usage-dashboard/"
   status = 301
 
+[[redirects]]
+  from = "/api/company-logo"
+  to = "/.netlify/functions/company-logo"
+  status = 200
+
 [[headers]]
   for = "/usage-dashboard/*"
   [headers.values]

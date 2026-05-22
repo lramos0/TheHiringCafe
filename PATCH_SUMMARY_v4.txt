@@ -1,4 +1,4 @@
-HiringCafe v4 fix bundle
+EmploymentCafe v4 fix bundle
 
 Changed files:
 - app.js

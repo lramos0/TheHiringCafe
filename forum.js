@@ -54,7 +54,7 @@
     }
   }
 
-  function auth() { return window.HiringCafeAuth || {}; }
+  function auth() { return window.EmploymentCafeAuth || {}; }
   function firebaseApi() {
     var api = auth();
     if (api.getFirebase) return api.getFirebase();
@@ -660,7 +660,7 @@
   }
 
   function mirrorToAppState(store) {
-    if (!window.HiringCafeAuth || !window.HiringCafeAuth.saveForumState) return;
+    if (!window.EmploymentCafeAuth || !window.EmploymentCafeAuth.saveForumState) return;
     var flatPosts = {};
     var flatComments = {};
     var postVotes = {};
@@ -701,7 +701,7 @@
         flatVotes[id + ":" + key] = store.votes[id][key];
       });
     });
-    window.HiringCafeAuth.saveForumState({
+    window.EmploymentCafeAuth.saveForumState({
       posts: flatPosts,
       comments: flatComments,
       upvotes: flatVotes,

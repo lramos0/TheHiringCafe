@@ -40,7 +40,7 @@ export default async function handler(request, _context) {
     const upstreamRes = await fetch(fetchUrl.toString(), {
       headers: {
         Accept: "text/csv, text/plain, */*",
-        "User-Agent": "TheHiringCafe/1.0 (edge-csv-stream)",
+        "User-Agent": "EmploymentCafe/1.0 (edge-csv-stream)",
       },
     });
 

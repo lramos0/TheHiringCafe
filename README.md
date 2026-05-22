@@ -1,4 +1,4 @@
-# HiringCafe Vanilla Restore
+# EmploymentCafe Vanilla Restore
 
 A static, vanilla JavaScript restore of the jobs app using the recovered job data pool.
 

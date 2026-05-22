@@ -1,4 +1,4 @@
-# HiringCafe UI update
+# EmploymentCafe UI update
 
 Changes in this bundle:
 

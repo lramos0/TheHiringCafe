@@ -18,7 +18,7 @@ exports.handler = async function handler(event) {
 
   try {
     const res = await fetch(upstream.toString(), {
-      headers: { Accept: "application/json", "User-Agent": "TheHiringCafe/1.0" },
+      headers: { Accept: "application/json", "User-Agent": "EmploymentCafe/1.0" },
       cache: "no-store"
     });
     const text = await res.text();

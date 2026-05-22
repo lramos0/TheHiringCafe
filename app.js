@@ -32,7 +32,7 @@
     headerKeywordBoost: null,
   };
 
-  window.HiringCafeAuth = {
+  window.EmploymentCafeAuth = {
     getUser: () => app.user,
     getProfile: () => app.profile,
     getState: () => app.state,
@@ -289,7 +289,7 @@
 
   function initFirebaseWhenReady(){
     window.addEventListener("load", async () => {
-      const cfg = window.HIRINGCAFE_FIREBASE_CONFIG || {};
+      const cfg = window.EMPLOYMENTCAFE_FIREBASE_CONFIG || {};
       const configured = cfg.apiKey && cfg.authDomain && cfg.projectId && cfg.appId && window.firebase;
       if (!configured) {
         app.authReady = true;
@@ -679,7 +679,7 @@
   }
 
   async function googleLogin(){
-    const cfg = window.HIRINGCAFE_FIREBASE_CONFIG || {};
+    const cfg = window.EMPLOYMENTCAFE_FIREBASE_CONFIG || {};
     if (!(cfg.apiKey && window.firebase && firebase.apps.length)) {
       openDrawer("Google sign-in not configured", "Add your Firebase config in firebase-config.js, then enable Google Authentication and Firestore. For now, try a local profile to test saved listings.");
       return;
@@ -991,31 +991,43 @@
   function formatLarge(n){ return Math.round(Number(n || 0)).toLocaleString(); }
 
   function companyDomain(company, url){
-    const fromUrl = domainFromUrl(url);
-    if (fromUrl) return fromUrl;
     const registry = window.Fortune500?.list?.().find(c => c.name && clean(c.name).toLowerCase() === clean(company).toLowerCase());
     if (registry?.domain) return registry.domain;
     const overrides = window.HC_DOMAIN_OVERRIDES || {};
     if (overrides[company]) return overrides[company];
+    const fromUrl = domainFromUrl(url);
+    if (fromUrl) return fromUrl;
     return clean(company).toLowerCase().replace(/&/g,"and").replace(/\b(company|companies|corporation|corp|inc|llc|holdings|group|international|systems|technologies|technology|services|the)\b/g,"").replace(/[^a-z0-9]/g,"") + ".com";
   }
 
   function domainFromUrl(url){
     try {
       const host = new URL(url).hostname.replace(/^www\./, "");
+      if (isAggregatorHost(host)) return "";
       return host || "";
     } catch { return ""; }
   }
 
+  function isAggregatorHost(host){
+    return /(greenhouse\.io|lever\.co|workdayjobs\.com|myworkdayjobs\.com|ashbyhq\.com|smartrecruiters\.com|icims\.com|jobvite\.com|breezy\.hr|recruiting\.paylocity\.com|workstream\.us|gusto\.com|taleo\.net|ultipro\.com|dayforcehcm\.com|successfactors\.com|adp\.com)/i.test(host || "");
+  }
+
+  function logoFallbackSvg(name, size){
+    const label = initials(name);
+    const n = Number(size) || 40;
+    const text = Math.max(12, Math.round(n / 3));
+    const safe = esc(label);
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${n}" height="${n}" viewBox="0 0 ${n} ${n}"><rect width="100%" height="100%" rx="12" fill="#fff7ed"/><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="${text}" font-weight="800" fill="#7c2d12">${safe}</text></svg>`;
+    return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+  }
+
   function companyLogoHtml(job, size){
-    const domain = job.companyDomain || companyDomain(job.company, job.apply || job.url);
-    const n = Math.max(96, size * 4);
-    const clearbit = `https://logo.clearbit.com/${encodeURIComponent(domain)}?size=${n}`;
-    const google = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=${n}`;
+    const proxy = `/api/company-logo?company=${encodeURIComponent(job.company || "")}&size=${Math.max(32, size * 2)}`;
+    const fallbackSvg = logoFallbackSvg(job.company, size);
     const initialsText = initials(job.company);
     return `<span class="logo-board-chip" style="--logo-h:${logoHue(job.company)}" data-initials="${escAttr(initialsText)}">
-      <img class="company-logo-img company-logo-main" src="${escAttr(clearbit)}" width="${size}" height="${size}" alt="${escAttr(job.company)} logo" loading="lazy" decoding="async" onerror="this.remove()" />
-      <img class="company-logo-img company-logo-fallback" src="${escAttr(google)}" width="${size}" height="${size}" alt="" loading="lazy" decoding="async" onerror="this.remove()" />
+      <img class="company-logo-img company-logo-main" src="${escAttr(proxy)}" data-fallback2="${escAttr(fallbackSvg)}" width="${size}" height="${size}" alt="${escAttr(job.company)} logo" loading="lazy" decoding="async" onerror="if(this.dataset.fallback2){this.src=this.dataset.fallback2;this.dataset.fallback2='';return;} this.remove();" />
+      <img class="company-logo-img company-logo-fallback" src="${escAttr(fallbackSvg)}" width="${size}" height="${size}" alt="" loading="lazy" decoding="async" />
     </span>`;
   }
 

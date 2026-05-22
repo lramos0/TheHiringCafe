@@ -1,4 +1,4 @@
-HiringCafe patch v3
+EmploymentCafe patch v3
 
 Fixes in this bundle:
 1. Restored navigation for Company forums.
@@ -15,7 +15,7 @@ Fixes in this bundle:
 
 4. Preserved local profile/forum state.
    - Local/Firebase profile state remains initialized by app.js.
-   - Forum posts/upvotes remain tied to HiringCafeAuth state.
+   - Forum posts/upvotes remain tied to EmploymentCafeAuth state.
 
 5. Kept the CORS-safe Job Data Pool proxy approach.
    - /api/jobs remains the browser endpoint.
