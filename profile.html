@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Profile | Employment Cafe</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/employment-cafe-icon-32.png"/>
+  <link rel="apple-touch-icon" type="image/png" sizes="180x180" href="/employment-cafe-icon-180.png"/>
+  <link rel="stylesheet" href="/styles.css"/>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+  <script defer src="/firebase-config.js"></script>
+</head>
+<body>
+  <div class="top-shell">
+    <div class="masthead">
+      <div class="masthead-inner">
+        <div class="brand-lockup">
+          <span class="brand-mark" aria-hidden="true"><img alt="Employment Cafe logo" class="brand-cup brand-logo" src="/employment-cafe-icon.png" width="52" height="52"/></span>
+          <div class="brand-text">
+            <p class="masthead-eyebrow">powered by JobDataPool.com</p>
+            <h1 class="masthead-title">Your Profile</h1>
+          </div>
+        </div>
+        <nav class="masthead-tabs" aria-label="Site sections">
+          <a class="masthead-tab" href="/">Jobs</a>
+          <a class="masthead-tab" href="/#forums">Company forums</a>
+          <a class="masthead-tab" href="/about">About</a>
+          <a class="masthead-tab is-active" href="/profile">Profile</a>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <main>
+    <section class="account-panel" style="margin-top:20px;">
+      <div class="account-panel-inner">
+        <div class="account-panel-copy">
+          <h2 id="profilePageName">Profile</h2>
+          <p id="profilePageStatus">Manage how your profile appears in forums.</p>
+          <div class="account-actions">
+            <a class="ghost-btn" href="/">Back to jobs</a>
+            <button class="ghost-btn" id="profileLogoutBtn" type="button">Log out</button>
+          </div>
+        </div>
+        <div class="profile-card-mount" id="profileCardMount"></div>
+      </div>
+    </section>
+  </main>
+  <script>
+    window.addEventListener("load", function () {
+      function readJson(key){ try { return JSON.parse(localStorage.getItem(key) || "null"); } catch { return null; } }
+      function writeJson(key, value){ localStorage.setItem(key, JSON.stringify(value)); }
+      function esc(s){ return String(s || "").replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]); }); }
+      function escAttr(s){ return esc(s).replace(/`/g, "&#96;"); }
+      function initials(s){ return String(s || "?").split(/\s+/).filter(Boolean).slice(0,2).map(function(x){return x[0];}).join("").toUpperCase() || "?"; }
+
+      var account = readJson("hc_account_v1") || readJson("hc_account_v2");
+      var statusEl = document.getElementById("profilePageStatus");
+      var nameEl = document.getElementById("profilePageName");
+      var mount = document.getElementById("profileCardMount");
+      var logoutBtn = document.getElementById("profileLogoutBtn");
+      var cfg = window.EMPLOYMENTCAFE_FIREBASE_CONFIG || {};
+      var firebaseReady = false;
+      var db = null;
+
+      try {
+        if (cfg.apiKey && cfg.authDomain && cfg.projectId && cfg.appId && window.firebase) {
+          if (!firebase.apps.length) firebase.initializeApp(cfg);
+          db = firebase.firestore();
+          firebaseReady = true;
+        }
+      } catch (_) {}
+
+      if (!account) {
+        nameEl.textContent = "Not signed in";
+        statusEl.textContent = "Use Join on the home page to sign in first.";
+        logoutBtn.classList.add("hidden");
+        mount.innerHTML = '<div class="profile-card-empty"><span class="profile-card-empty-icon" aria-hidden="true">🌷</span><h3>No active profile</h3><p>Once you sign in, your profile editor will appear here.</p></div>';
+        return;
+      }
+
+      var key = account.uid ? ("hc_profile_v1:" + account.uid) : "hc_profile_v1";
+      var stored = readJson(key) || readJson("hc_profile_v1") || {};
+      var profile = {
+        uid: account.uid || "guest",
+        displayName: String(stored.displayName || account.name || account.email || "Community Member").trim().slice(0, 80),
+        headline: String(stored.headline || "").trim().slice(0, 120),
+        bio: String(stored.bio || "").trim().slice(0, 500)
+      };
+
+      nameEl.textContent = profile.displayName || "Community Member";
+      statusEl.textContent = account.google ? "Google-synced session is active." : "Local profile session is active on this device.";
+
+      mount.innerHTML = '\
+        <div class="profile-card" id="profileCard">\
+          <div class="profile-card-top">\
+            <div class="profile-avatar" aria-hidden="true">' + esc(initials(profile.displayName)) + '</div>\
+            <div>\
+              <h3 class="profile-card-title">Profile</h3>\
+              <p class="profile-card-sub">Shown next to forum posts</p>\
+            </div>\
+          </div>\
+          <label class="profile-field"><span class="profile-field-label">Name</span><input id="profileDisplayName" value="' + escAttr(profile.displayName) + '" placeholder="How you’d like to appear" autocomplete="nickname"></label>\
+          <label class="profile-field"><span class="profile-field-label">Headline</span><input id="profileHeadline" value="' + escAttr(profile.headline) + '" placeholder="e.g. Backend engineer · NYC"></label>\
+          <label class="profile-field"><span class="profile-field-label">Bio</span><textarea id="profileBio" placeholder="A line or two about what you care about">' + esc(profile.bio) + '</textarea></label>\
+          <button class="primary-btn profile-save-btn" id="saveProfileBtn" type="button">Save profile</button>\
+        </div>';
+
+      document.getElementById("saveProfileBtn").addEventListener("click", function(){
+        profile.displayName = (document.getElementById("profileDisplayName").value || "").trim().slice(0, 80) || "Community Member";
+        profile.headline = (document.getElementById("profileHeadline").value || "").trim().slice(0, 120);
+        profile.bio = (document.getElementById("profileBio").value || "").trim().slice(0, 500);
+        writeJson(key, profile);
+        writeJson("hc_profile_v1", profile);
+        account.name = profile.displayName;
+        writeJson("hc_account_v1", account);
+        localStorage.removeItem("hc_account_v2");
+        nameEl.textContent = profile.displayName;
+        statusEl.textContent = "Profile saved.";
+        if (firebaseReady && account.google && account.uid && db) {
+          db.collection("users").doc(account.uid).set({
+            uid: account.uid,
+            profile: {
+              displayName: profile.displayName,
+              headline: profile.headline,
+              bio: profile.bio
+            },
+            updatedAt: Date.now()
+          }, { merge: true }).catch(function(){});
+        }
+      });
+
+      logoutBtn.addEventListener("click", async function(){
+        try {
+          if (firebaseReady && window.firebase && firebase.apps.length) {
+            await firebase.auth().signOut();
+          }
+        } catch (_) {}
+        localStorage.removeItem("hc_account_v1");
+        localStorage.removeItem("hc_account_v2");
+        window.location.href = "/?logged_out=1";
+      });
+    });
+  </script>
+</body>
+</html>

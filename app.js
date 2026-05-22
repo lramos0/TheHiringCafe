@@ -81,7 +81,7 @@
   }
 
   function cacheEls(){
-    for (const id of ["searchInput","industryFilter","seniorityFilter","sortSelect","resultCount","syncStatus","sections","errorBox","accountButton","accountPanel","googleLogin","localLogin","logoutButton","accountStatus","savedOnly","clearFilters","jobsMain","forumView","navJobs","navForums"]){
+    for (const id of ["searchInput","industryFilter","seniorityFilter","sortSelect","resultCount","syncStatus","sections","errorBox","accountButton","accountPanel","googleLogin","localLogin","logoutButton","accountStatus","savedOnly","clearFilters","jobsMain","forumView","navJobs","navForums","authModal","authModalBackdrop"]){
       app.els[id] = document.getElementById(id);
     }
     app.els.aiButton = document.querySelector(".ai-btn");
@@ -97,7 +97,11 @@
     app.els.sortSelect.addEventListener("change", applyFilters);
     app.els.clearFilters.addEventListener("click", clearAllFilters);
     app.els.savedOnly.addEventListener("click", () => { app.savedOnly = !app.savedOnly; app.els.savedOnly.classList.toggle("primary-btn", app.savedOnly); app.els.savedOnly.classList.toggle("ghost-btn", !app.savedOnly); applyFilters(); });
-    app.els.accountButton.addEventListener("click", () => app.els.accountPanel.classList.toggle("hidden"));
+    app.els.accountButton.addEventListener("click", () => {
+      if (app.user) { window.location.href = "/profile"; return; }
+      openAuthModal();
+    });
+    app.els.authModalBackdrop?.addEventListener("click", closeAuthModal);
     app.els.googleLogin.addEventListener("click", googleLogin);
     app.els.localLogin.addEventListener("click", localLogin);
     app.els.logoutButton.addEventListener("click", logout);
@@ -205,6 +209,7 @@
       <div class="menu-stack">
         <button type="button" data-menu-action="jobs">Jobs</button>
         <button type="button" data-menu-action="forums">Company forums</button>
+        <button type="button" data-menu-action="about">About</button>
         <button type="button" data-menu-action="account">${signedIn ? "Profile / account" : "Join / sign in"}</button>
         <button type="button" data-menu-action="ai">AI Search at mewannajob.com ↗</button>
         <button type="button" data-menu-action="filters">Jump to filters</button>
@@ -216,7 +221,11 @@
       drawer.remove();
       if (action === "jobs") { location.hash = ""; routeMainView(); }
       if (action === "forums") { location.hash = "forums"; routeMainView(); }
-      if (action === "account") { app.els.accountPanel?.classList.remove("hidden"); routeMainView(); window.scrollTo({ top: 0, behavior: "smooth" }); }
+      if (action === "about") window.location.href = "/about";
+      if (action === "account") {
+        if (app.user) window.location.href = "/profile";
+        else openAuthModal();
+      }
       if (action === "ai") window.location.href = "https://mewannajob.com";
       if (action === "filters") { location.hash = ""; routeMainView(); scrollToolbarIntoView(); }
     }));
@@ -316,6 +325,7 @@
           }
           await loadState();
           updateAccountUi();
+          if (app.user) closeAuthModal();
           applyFilters();
           window.dispatchEvent(new CustomEvent("hiringcafe:firebase", { detail: { db: app.db, user: app.user } }));
         });
@@ -702,7 +712,7 @@
     await loadState();
     updateAccountUi();
     applyFilters();
-    app.els.accountPanel?.classList.remove("hidden");
+    closeAuthModal();
     window.dispatchEvent(new CustomEvent("hiringcafe:authchange", { detail: { user: app.user, profile: app.profile, state: app.state } }));
   }
   async function logout(){
@@ -713,6 +723,16 @@
     localStorage.removeItem(LEGACY_ACCOUNT_KEY);
     updateAccountUi();
     window.dispatchEvent(new CustomEvent("hiringcafe:authchange", { detail: { user: null, profile: null, state: app.state } }));
+  }
+  function openAuthModal(){
+    app.els.authModal?.classList.remove("hidden");
+    app.els.accountPanel?.classList.remove("hidden");
+    document.body.classList.add("auth-modal-open");
+  }
+  function closeAuthModal(){
+    app.els.authModal?.classList.add("hidden");
+    app.els.accountPanel?.classList.add("hidden");
+    document.body.classList.remove("auth-modal-open");
   }
   function restoreLocalAccount(){
     app.user = readJson(ACCOUNT_KEY, null) || readJson(LEGACY_ACCOUNT_KEY, null);
@@ -805,54 +825,11 @@
     app.els.logoutButton?.classList.toggle("hidden", !logged);
     app.els.googleLogin?.classList.toggle("hidden", logged);
     app.els.localLogin?.classList.toggle("hidden", logged);
-    renderProfilePanel();
     window.dispatchEvent(new CustomEvent("hiringcafe:authchange", { detail: { user: app.user, profile: app.profile, state: app.state } }));
   }
 
   function renderProfilePanel(){
-    const panel = app.els.accountPanel;
-    if (!panel) return;
-    const mount = document.getElementById("profileCardMount") || panel;
-    let card = panel.querySelector("#profileCard");
-    if (!card) {
-      card = document.createElement("div");
-      card.id = "profileCard";
-      card.className = "profile-card";
-    }
-    if (card.parentElement !== mount) mount.appendChild(card);
-    if (!app.user) {
-      card.innerHTML = `<div class="profile-card-empty"><span class="profile-card-empty-icon" aria-hidden="true">🌷</span><h3>Almost there</h3><p>Sign in above to edit your public name, headline, and bio for the forums.</p></div>`;
-      return;
-    }
-    const profile = app.profile || defaultProfile();
-    const localPosts = Object.values(app.state.posts || {}).filter(p => p.authorUid === app.user.uid).length;
-    const localComments = Object.values(app.state.comments || {}).filter(c => c.authorUid === app.user.uid).length;
-    const localVotes = Object.keys(app.state.upvotes || {}).filter(k => k.startsWith(`${app.user.uid}:`)).length;
-    const stats = { ...defaultProfileStats(), ...(profile.stats || {}) };
-    const posts = Math.max(Number(stats.posts || 0), localPosts);
-    const comments = Math.max(Number(stats.comments || 0), localComments);
-    const votes = Math.max(Number(stats.votesCast || 0), localVotes);
-    const av = esc(initials(profile.displayName || app.user.name || "?"));
-    card.innerHTML = `
-      <div class="profile-card-top">
-        <div class="profile-avatar" aria-hidden="true">${av}</div>
-        <div>
-          <h3 class="profile-card-title">Profile</h3>
-          <p class="profile-card-sub">Shown next to forum posts</p>
-        </div>
-      </div>
-      <label class="profile-field"><span class="profile-field-label">Name</span><input id="profileDisplayName" value="${escAttr(profile.displayName || '')}" placeholder="How you’d like to appear" autocomplete="nickname"></label>
-      <label class="profile-field"><span class="profile-field-label">Headline</span><input id="profileHeadline" value="${escAttr(profile.headline || '')}" placeholder="e.g. Backend engineer · NYC"></label>
-      <label class="profile-field"><span class="profile-field-label">Bio</span><textarea id="profileBio" placeholder="A line or two about what you care about">${esc(profile.bio || "")}</textarea></label>
-      <ul class="profile-stat-pills" aria-label="Your activity">
-        <li><span class="profile-stat-n">${posts}</span> posts</li>
-        <li><span class="profile-stat-n">${comments}</span> comments</li>
-        <li><span class="profile-stat-n">${votes}</span> votes</li>
-        <li><span class="profile-stat-n">${Object.keys(app.state.saved || {}).length}</span> saved</li>
-      </ul>
-      <button class="primary-btn profile-save-btn" id="saveProfileBtn" type="button">Save profile</button>
-    `;
-    card.querySelector("#saveProfileBtn")?.addEventListener("click", saveProfileFromPanel);
+    return;
   }
 
   function defaultProfile(){

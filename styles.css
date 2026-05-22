@@ -799,6 +799,35 @@ main {
   box-shadow: none;
 }
 
+.auth-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.auth-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(12, 18, 32, 0.32);
+  backdrop-filter: blur(10px);
+}
+
+.auth-modal-panel {
+  position: relative;
+  z-index: 1;
+  width: min(980px, 96vw);
+  max-height: 88vh;
+  overflow: auto;
+  margin: 0;
+}
+
+body.auth-modal-open {
+  overflow: hidden;
+}
+
 .account-panel-inner {
   display: grid;
   grid-template-columns: auto 1fr;
